@@ -1,6 +1,6 @@
 from cython.operator cimport dereference as deref, preincrement as inc
 cimport symengine
-from symengine cimport RCP, pair, map_basic_basic, umap_int_basic, umap_int_basic_iterator, rcp_const_basic, std_pair_short_rcp_const_basic, rcp_const_seriescoeffinterface
+from symengine cimport RCP, pair, map_basic_basic, umap_int_basic, umap_int_basic_iterator, umap_basic_num, umap_basic_num_iterator, rcp_const_basic, std_pair_short_rcp_const_basic, rcp_const_seriescoeffinterface
 from libcpp cimport bool
 from libcpp.string cimport string
 from libcpp.vector cimport vector
@@ -584,6 +584,11 @@ cdef class Basic(object):
             s.update(arg.atoms(*types))
         return s
 
+    def as_coefficients_dict(self):
+        d = collections.defaultdict(int)
+        d[self] = 1
+        return d
+
 def series(ex, x=None, x0=0, n=6, method='sympy', removeO=False):
     # TODO: check for x0 an infinity, see sympy/core/expr.py
     # TODO: nonzero x0
@@ -967,6 +972,21 @@ cdef class Add(Basic):
     def func(self, *values):
         return add(*values)
 
+    def as_coefficients_dict(self):
+        cdef RCP[const symengine.Add] X = symengine.rcp_static_cast_Add(self.thisptr)
+        cdef umap_basic_num umap
+        cdef umap_basic_num_iterator iter, iterend
+        d = collections.defaultdict(int)
+        d[Integer(1)] = c2py(<RCP[const symengine.Basic]>(deref(X).get_coef()))
+        umap = deref(X).get_dict()
+        iter = umap.begin()
+        iterend = umap.end()
+        while iter != iterend:
+            d[c2py(<RCP[const symengine.Basic]>(deref(iter).first))] =\
+                    c2py(<RCP[const symengine.Basic]>(deref(iter).second))
+            inc(iter)
+        return d
+
 cdef class Mul(Basic):
 
     @property
@@ -985,6 +1005,10 @@ cdef class Mul(Basic):
 
     def func(self, *values):
         return mul(*values)
+
+    def as_coefficients_dict(self):
+        d = collections.defaultdict(int)
+        return d
 
 cdef class Pow(Basic):
 
@@ -1865,7 +1889,7 @@ cdef matrix_to_vec(DenseMatrix d, symengine.vec_basic& v):
 
 def eye(n):
     d = DenseMatrix(n, n)
-    symengine.eye(deref(symengine.static_cast_DenseMatrix(d.thisptr)), n, n, 0)
+    symengine.eye(deref(symengine.static_cast_DenseMatrix(d.thisptr)), 0)
     return d
 
 def diag(*values):
@@ -1882,14 +1906,14 @@ def ones(rows, cols = None):
     if cols is None:
         cols = rows
     d = DenseMatrix(rows, cols)
-    symengine.ones(deref(symengine.static_cast_DenseMatrix(d.thisptr)), rows, cols)
+    symengine.ones(deref(symengine.static_cast_DenseMatrix(d.thisptr)))
     return d
 
 def zeros(rows, cols = None):
     if cols is None:
         cols = rows
     d = DenseMatrix(rows, cols)
-    symengine.zeros(deref(symengine.static_cast_DenseMatrix(d.thisptr)), rows, cols)
+    symengine.zeros(deref(symengine.static_cast_DenseMatrix(d.thisptr)))
     return d
 
 cdef class Sieve:

@@ -208,8 +208,11 @@ cdef extern from "<symengine/basic.h>" namespace "SymEngine":
         vec_basic get_args() nogil
         int __cmp__(const Basic &o) nogil
     ctypedef RCP[const Basic] rcp_const_basic "SymEngine::RCP<const SymEngine::Basic>"
+    ctypedef RCP[const Number] rcp_const_number "SymEngine::RCP<const SymEngine::Number>"
     ctypedef unordered_map[int, rcp_const_basic] umap_int_basic "SymEngine::umap_int_basic"
     ctypedef unordered_map[int, rcp_const_basic].iterator umap_int_basic_iterator "SymEngine::umap_int_basic::iterator"
+    ctypedef unordered_map[rcp_const_basic, rcp_const_number] umap_basic_num "SymEngine::umap_basic_num"
+    ctypedef unordered_map[rcp_const_basic, rcp_const_number].iterator umap_basic_num_iterator "SymEngine::umap_basic_num::iterator"
 
     bool eq(const Basic &a, const Basic &b) nogil except +
     bool neq(const Basic &a, const Basic &b) nogil except +
@@ -335,6 +338,8 @@ cdef extern from "<symengine/add.h>" namespace "SymEngine":
 
     cdef cppclass Add(Basic):
         void as_two_terms(const Ptr[RCP[Basic]] &a, const Ptr[RCP[Basic]] &b)
+        RCP[const Number] get_coef()
+        const umap_basic_num &get_dict()
 
 cdef extern from "<symengine/mul.h>" namespace "SymEngine":
     cdef RCP[const Basic] mul(RCP[const Basic] &a, RCP[const Basic] &b) nogil except+
@@ -611,10 +616,10 @@ cdef extern from "<symengine/matrix.h>" namespace "SymEngine":
             const DenseMatrix &x, DenseMatrix &result) nogil except +
     void diff "SymEngine::sdiff"(const DenseMatrix &A,
             RCP[const Basic] &x, DenseMatrix &result) nogil except +
-    void eye (DenseMatrix &A, unsigned N, unsigned M, int k) nogil
+    void eye (DenseMatrix &A, int k) nogil
     void diag(DenseMatrix &A, vec_basic &v, int k) nogil
-    void ones(DenseMatrix &A, unsigned rows, unsigned cols) nogil
-    void zeros(DenseMatrix &A, unsigned rows, unsigned cols) nogil
+    void ones(DenseMatrix &A) nogil
+    void zeros(DenseMatrix &A) nogil
 
 cdef extern from "<symengine/ntheory.h>" namespace "SymEngine":
     int probab_prime_p(const Integer &a, int reps)
